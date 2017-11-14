@@ -184,12 +184,13 @@ class MblLogin extends \DAL\DalSlim {
             
             
             DECLARE db_cursor CURSOR FOR  
-            SELECT database_id, name FROM Sys.databases 
-            WHERE state = 0
-                AND name NOT IN ('master','model','msdb','tempdb', 'TEYDEB_GELISTIRME_V5','BILSANET_MOBILE','BILSANET_PRODUCTION','BILSANET_DEVELOPMENT')  
-                AND name NOT like ( '%ReportServer%' )  
-                AND Left(name, 3) != 'RS_'
-                AND (lower(name) like '%Bilsa%' or lower(name) like '%BILSA%');
+            SELECT database_id, name FROM Sys.databases sss
+                INNER JOIN [BILSANET_MOBILE].[dbo].[Mobile_tcdb] tcdbb on  sss.database_id = tcdbb.dbID  
+                INNER JOIN [BILSANET_MOBILE].[dbo].[Mobile_tc] tcc ON tcdbb.tcID = tcc.id 
+                where 
+                    sss.state = 0 and 
+                    tcc.[tc]= @tc and 
+                    banTarihi is null  ;
 
             OPEN db_cursor   
             FETCH NEXT FROM db_cursor INTO  @database_id , @name 
@@ -489,12 +490,12 @@ class MblLogin extends \DAL\DalSlim {
                 $cid = $params['Cid'];
             } 
             $dbConfigValue = 'pgConnectFactory';
-            $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
+         /*   $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
                 $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
                 // $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['dbname'];
             }   
-            
+            */
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             $kisiId = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
             if ((isset($params['kisiId']) && $params['kisiId'] != "")) {
@@ -524,12 +525,14 @@ class MblLogin extends \DAL\DalSlim {
             set @tc =    ".$tc.";  
             
             DECLARE db_cursor CURSOR FOR  
-            SELECT database_id, name FROM Sys.databases 
-            WHERE state = 0
-                AND name NOT IN ('master','model','msdb','tempdb', 'TEYDEB_GELISTIRME_V5','BILSANET_MOBILE','BILSANET_PRODUCTION','BILSANET_DEVELOPMENT')  
-                AND name NOT like ( '%ReportServer%' )  
-                AND Left(name, 3) != 'RS_'
-                AND (lower(name) like '%Bilsa%' or lower(name) like '%BILSA%');
+            SELECT database_id, name FROM Sys.databases sss
+                INNER JOIN [BILSANET_MOBILE].[dbo].[Mobile_tcdb] tcdbb on  sss.database_id = tcdbb.dbID  
+                INNER JOIN [BILSANET_MOBILE].[dbo].[Mobile_tc] tcc ON tcdbb.tcID = tcc.id 
+                where 
+                    sss.state = 0 and 
+                    tcc.[tc]= @tc and 
+                    banTarihi is null  ;
+      
 
             OPEN db_cursor   
             FETCH NEXT FROM db_cursor INTO  @database_id , @name 
@@ -694,11 +697,13 @@ class MblLogin extends \DAL\DalSlim {
 
                  "; 
             $statement = $pdo->prepare($sql);   
-      // echo debugPDO($sql, $params);
+           // echo debugPDO($sql, $params);
             $statement->execute();
+            
            
             $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
             $errorInfo = $statement->errorInfo();
+         
             if ($errorInfo[0] != "00000" && $errorInfo[1] != NULL && $errorInfo[2] != NULL)
                 throw new \PDOException($errorInfo[0]);
             return array("found" => true, "errorInfo" => $errorInfo, "resultSet" => $result);
@@ -721,18 +726,19 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
-            $dbConfigValue = 'pgConnectFactory';
-            $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
+        //    $dbnamex = 'dbo.';
+            $dbConfigValue = 'pgConnectFactoryMobil';
+           /* $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    
+                    }   
             }   
-            
+            */
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex;
-                
-            } 
+            
             $RolID = -11;
             if ((isset($params['RolID']) && $params['RolID'] != "")) {
                 $RolID = $params['RolID'];
@@ -751,13 +757,13 @@ class MblLogin extends \DAL\DalSlim {
                         ,[divid] ,
                         iconcolor,
                         [iconclass]
-                    FROM ".$dbnamex."[GNL_Mobil_Menuleri]
+                    FROM BILSANET_MOBILE.dbo.[Mobil_Menuleri]
                     WHERE active = 0 AND deleted = 0 AND 
                         [RolID] = ".intval($RolID)."   
                     ORDER BY MenuID
-                 "; 
+                 ";  
             $statement = $pdo->prepare($sql);            
-     //   echo debugPDO($sql, $params);
+      //echo debugPDO($sql, $params);
             $statement->execute();
             $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
             $errorInfo = $statement->errorInfo();
@@ -783,10 +789,14 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
             }   
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
@@ -833,10 +843,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
             }   
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
@@ -853,10 +868,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['dersYiliID']) && $params['dersYiliID'] != "")) {
                 $dersYiliID = $params['dersYiliID'];
             }  
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+            
             
             $sql = "  
             set nocount on; 
@@ -984,11 +996,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             $kisiId = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
@@ -1003,10 +1019,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['tarih']) && $params['tarih'] != "")) {
                 $tarih = $params['tarih'];
             }   
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "  
             SET NOCOUNT ON;   
             IF OBJECT_ID('tempdb..#ogretmenDersSaatleri') IS NOT NULL DROP TABLE #ogretmenDersSaatleri; 
@@ -1080,11 +1093,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -1117,10 +1134,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['dersYiliID']) && $params['dersYiliID'] != "")) {
                 $dersYiliID = $params['dersYiliID'];
             }   
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "  
             SET NOCOUNT ON;   
             IF OBJECT_ID('tempdb..#tmpe') IS NOT NULL DROP TABLE #tmpe; 
@@ -1192,21 +1206,22 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             $kisiId = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
             if ((isset($params['kisiId']) && $params['kisiId'] != "")) {
                 $kisiId = $params['kisiId'];
             }  
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
              
             $sql = "  
             SET NOCOUNT ON;   
@@ -1245,12 +1260,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-                
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             $pdo->beginTransaction();
@@ -1294,10 +1312,6 @@ class MblLogin extends \DAL\DalSlim {
             $XmlData = ' ';
             if ((isset($params['XmlData']) && $params['XmlData'] != "")) {
                 $XmlData = $params['XmlData'];
-            } 
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
             } 
              
             //  $xml = new SimpleXMLElement('<xml/>');
@@ -1420,11 +1434,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
       
@@ -1487,11 +1505,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             $kisiId = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
@@ -1502,10 +1524,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['dersYiliID']) && $params['dersYiliID'] != "")) {
                 $dersYiliID = $params['dersYiliID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "  
             SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#ogrenciIdBul') IS NOT NULL DROP TABLE #ogrenciIdBul; 
@@ -1600,11 +1619,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }      
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             $kisiId = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
@@ -1615,10 +1638,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['dersYiliID']) && $params['dersYiliID'] != "")) {
                 $dersYiliID = $params['dersYiliID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+              
             $sql = "  
             SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#ogrenciIdDevamsizlikTarih') IS NOT NULL DROP TABLE #ogrenciIdDevamsizlikTarih; 
@@ -1672,7 +1692,7 @@ class MblLogin extends \DAL\DalSlim {
                 SET NOCOUNT OFF; 
                  "; 
             $statement = $pdo->prepare($sql);   
-             echo debugPDO($sql, $params);
+           //  echo debugPDO($sql, $params);
             $statement->execute();
            
             $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
@@ -1700,11 +1720,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }      
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue); 
             
@@ -1712,10 +1736,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['DersYiliID']) && $params['DersYiliID'] != "")) {
                 $DersYiliID = $params['DersYiliID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+              
             $sql = "  
             SET NOCOUNT ON;    
             SELECT * FROM ( 
@@ -1788,11 +1809,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue); 
             
@@ -1800,10 +1825,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['SinifID']) && $params['SinifID'] != "")) {
                 $SinifID = $params['SinifID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "  
              SET NOCOUNT ON; 
                 SELECT 
@@ -1913,11 +1935,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }      
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -1925,10 +1951,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['OgrenciSeviyeID']) && $params['OgrenciSeviyeID'] != "")) {
                 $OgrenciSeviyeID = $params['OgrenciSeviyeID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "  
             SET NOCOUNT ON; 
             SELECT  OgrenciID ,
@@ -2072,11 +2095,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }      
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
            
@@ -2102,10 +2129,7 @@ class MblLogin extends \DAL\DalSlim {
             if (\Utill\Dal\Helper::haveRecord($operationId)) {
                 $OkulOgretmenID = $operationId ['resultSet'][0]['OkulOgretmenID'];
             }   
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             
             $sql = "  
             SET NOCOUNT ON;  
@@ -2219,11 +2243,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }      
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
            
@@ -2250,10 +2278,7 @@ class MblLogin extends \DAL\DalSlim {
             if (\Utill\Dal\Helper::haveRecord($operationId)) {
                 $OkulOgretmenID = $operationId ['resultSet'][0]['OkulOgretmenID'];
             } 
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             
             $sql = "  
             SET NOCOUNT ON;  
@@ -2368,11 +2393,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
            
@@ -2399,10 +2428,7 @@ class MblLogin extends \DAL\DalSlim {
             if (\Utill\Dal\Helper::haveRecord($operationId)) {
                 $OkulOgretmenID = $operationId ['resultSet'][0]['OkulOgretmenID'];
             }  
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+            
             
             $sql = "  
             SET NOCOUNT ON;  
@@ -2518,11 +2544,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
              $OkulID = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
@@ -2533,10 +2563,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['OgretmenID']) && $params['OgretmenID'] != "")) {
                 $OgretmenID = $params['OgretmenID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+            
            
             $sql = "  
             SET NOCOUNT ON;    	 
@@ -2586,11 +2613,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }      
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue); 
             
@@ -2598,10 +2629,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['KisiID']) && $params['KisiID'] != "")) {
                 $KisiID = $params['KisiID'];
             } 
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             
             $sql = "  
             SET NOCOUNT ON;  
@@ -2683,10 +2711,14 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
             }   
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
@@ -2695,10 +2727,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['MesajID']) && $params['MesajID'] != "")) {
                 $MesajID = $params['MesajID'];
             } 
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             
             $sql = "  
             SET NOCOUNT ON;   
@@ -2774,11 +2803,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             $pdo->beginTransaction();
@@ -2787,10 +2820,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['MesajID']) && $params['MesajID'] != "")) {
                 $MesajID = $params['MesajID'];
             }  
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
              
             $sql = "
                 INSERT INTO ".$dbnamex."[MSJ_MesajKutulari]
@@ -2842,10 +2872,14 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
             }   
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);  
@@ -2858,11 +2892,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['DersYiliID']) && $params['DersYiliID'] != "")) {
                 $DersYiliID = $params['DersYiliID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
-            
+             
             $sql = "  
             SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#okiozetodevtanimlari') IS NOT NULL DROP TABLE #okiozetodevtanimlari; 
@@ -2949,11 +2979,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);  
             
@@ -2965,10 +2999,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['EgitimYilID']) && $params['EgitimYilID'] != "")) {
                 $EgitimYilID = $params['EgitimYilID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             
             $sql = "  
             SET NOCOUNT ON;  
@@ -3032,11 +3063,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue); 
              
@@ -3044,10 +3079,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['DersYiliID']) && $params['DersYiliID'] != "")) {
                 $DersYiliID = $params['DersYiliID'];
             } 
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            }  
+              
             $sql = "  
             SET NOCOUNT ON;  
             SELECT  
@@ -3103,11 +3135,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -3123,10 +3159,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['DonemID']) && $params['DonemID'] != "")) {
                 $DonemID = $params['DonemID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+              
             
             $sql = "  
             SET NOCOUNT ON;  
@@ -3204,11 +3237,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);  
             
@@ -3235,11 +3272,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['DonemID']) && $params['DonemID'] != "")) {
                 $DonemID = $params['DonemID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
-            
+              
             $sql = "  
             SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#okiogrencidersprogramilistesi') IS NOT NULL DROP TABLE #okiogrencidersprogramilistesi; 
@@ -3309,11 +3342,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue); 
             
@@ -3321,10 +3358,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['DersYiliID']) && $params['DersYiliID'] != "")) {
                 $DersYiliID = $params['DersYiliID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "  
             SET NOCOUNT ON;  
             SELECT 
@@ -3366,11 +3400,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);  
              
@@ -3381,10 +3419,6 @@ class MblLogin extends \DAL\DalSlim {
             $DonemID = -1;
             if ((isset($params['DonemID']) && $params['DonemID'] != "")) {
                 $DonemID = $params['DonemID'];
-            }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
             }  
             
             $sql = "   
@@ -3455,11 +3489,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -3467,10 +3505,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['DersYiliID']) && $params['DersYiliID'] != "")) {
                 $DersYiliID = $params['DersYiliID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "  
            SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#okisinifseviyeleri') IS NOT NULL DROP TABLE #okisinifseviyeleri; 
@@ -3532,11 +3567,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -3548,10 +3587,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['SeviyeID']) && $params['SeviyeID'] != "")) {
                 $SeviyeID = $params['SeviyeID'];
             }
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "  
            SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#okisinifseviyeleri') IS NOT NULL DROP TABLE #okisinifseviyeleri; 
@@ -3621,11 +3657,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -3633,10 +3673,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['KisiID']) && $params['KisiID'] != "")) {
                 $KisiID = $params['KisiID'];
             } 
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
            
             $sql = "   
             SET NOCOUNT ON;  
@@ -3700,11 +3737,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -3720,10 +3761,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['dersYiliID']) && $params['dersYiliID'] != "")) {
                 $dersYiliID = $params['dersYiliID'];
             }    
-           $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+            
             $sql = "  
             set nocount on; 
             
@@ -3851,11 +3889,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -3867,10 +3909,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['OgrenciID']) && $params['OgrenciID'] != "")) {
                 $OgrenciID = $params['OgrenciID'];
             }
-           $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+            
             $sql = "  
             SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#okiborclusozlesmeleri') IS NOT NULL DROP TABLE #okiborclusozlesmeleri; 
@@ -4067,11 +4106,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -4079,10 +4122,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['BorcluSozlesmeID']) && $params['BorcluSozlesmeID'] != "")) {
                 $BorcluSozlesmeID = $params['BorcluSozlesmeID'];
             } 
-           $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+           
             $sql = "  
             SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#okiborcluodemeplani') IS NOT NULL DROP TABLE #okiborcluodemeplani; 
@@ -4164,11 +4204,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }      
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
             
@@ -4180,10 +4224,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['OgrenciID']) && $params['OgrenciID'] != "")) {
                 $BorcluSozlesmeID = $params['OgrenciID'];
             } 
-           $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+            
             $sql = "  
             SET NOCOUNT ON;  
             IF OBJECT_ID('tempdb..#okisinavogrencileri') IS NOT NULL DROP TABLE #okisinavogrencileri; 
@@ -4252,11 +4293,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+            $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue); 
             
@@ -4268,10 +4313,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Tarih']) && $params['Tarih'] != "")) {
                 $tarih = $params['Tarih'];
             } 
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "    
             SET NOCOUNT ON;  
 
@@ -4346,11 +4388,15 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
             } 
+             $dbnamex = 'dbo.';
             $dbConfigValue = 'pgConnectFactory';
             $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
             if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
-                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass'];
-            }   
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
             
             $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
              
@@ -4358,10 +4404,7 @@ class MblLogin extends \DAL\DalSlim {
             if ((isset($params['KisiID']) && $params['KisiID'] != "")) {
                 $KisiID = $params['KisiID'];
             } 
-            $dbnamex = 'dbo.';
-            if ((isset($params['dbnamex']) && $params['dbnamex'] != "")) {
-                $dbnamex = $params['dbnamex'].'.'.$dbnamex; 
-            } 
+             
             $sql = "    
             SET NOCOUNT ON;  
 
@@ -4399,7 +4442,609 @@ class MblLogin extends \DAL\DalSlim {
         }
     }
    
+      /** 
+     * @author Okan CIRAN
+     * @ dashboard   !!
+     * @version v 1.0  25.10.2017
+     * @param array | null $args
+     * @return array
+     * @throws \PDOException
+     */ 
+    public function dashboarddataOgrenci ($params = array()) {
+        try {
+            $cid = -1;
+            if ((isset($params['Cid']) && $params['Cid'] != "")) {
+                $cid = $params['Cid'];
+            } 
+            $dbnamex = 'dbo.';
+            $dbConfigValue = 'pgConnectFactory';
+            $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
+            if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }     
+            
+            $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
+           
+            $KisiID =  'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
+            if ((isset($params['KisiID']) && $params['KisiID'] != "")) {
+                $KisiID = $params['KisiID'];
+            } 
+             
+            $sql = "   
+                SET NOCOUNT ON
+
+                set datefirst 1; 
+                declare  
+                    @SinifID UNIQUEIDENTIFIER,
+                    @DonemID INT=1,
+                    @OgrenciSeviyeID uniqueidentifier ,
+                    @DersYiliID uniqueidentifier ,  
+                    @OkulID uniqueidentifier ,  
+                    @KisiID uniqueidentifier ,
+                    @SubeGrupID int;
+
+                /*
+                set @SinifID = 'F4201B97-B073-4DD7-8891-8091C3DC82CF'; 
+                set @OgrenciSeviyeID ='C8611CCD-E3B1-42DB-B83E-013E419BB4B7';
+                */ 
+                set @KisiID =  '".$KisiID."';  /* 'D74EAF39-2225-4F1C-AC9E-22F73BA8D4C8' ;  */  
+                 IF OBJECT_ID('tempdb..#DersProgrami') IS NOT NULL DROP TABLE #DersProgrami;   
+                 IF OBJECT_ID('tempdb..#xxx') IS NOT NULL DROP TABLE #xxx;  
+
+                CREATE TABLE #DersProgrami(DersSirasi smallint,
+                                            HaftaGunu smallint,
+                                            SinifDersID nvarchar(4000))
+                
+                 SELECT top 1 
+                        @DersYiliID = DY.DersYiliID ,
+                        @SubeGrupID = S.SubeGrupID , 
+                        @OgrenciSeviyeID = OS.OgrenciseviyeID, 
+                        @SinifID = OS.SinifID   
+                        /*  OK.OkulID, 
+                            OK.KurumID,
+                            OOB.OgrenciOkulBilgiID, 
+                            dy.EgitimYilID, */  
+                FROM  ".$dbnamex."GNL_OgrenciSeviyeleri OS
+                INNER JOIN ".$dbnamex."GNL_Siniflar S ON S.SinifID = OS.SinifID
+                INNER JOIN  ".$dbnamex."GNL_DersYillari DY ON DY.DersYiliID = S.DersYiliID
+                INNER JOIN  ".$dbnamex."GNL_Okullar OK ON OK.OkulID = DY.OkulID
+                INNER JOIN  ".$dbnamex."GNL_OgrenciOkulBilgileri OOB ON OOB.OkulID = OK.OkulID AND OOB.OgrenciID = OS.OgrenciID
+                INNER JOIN  ".$dbnamex."GNL_Kisiler K ON K.KisiID = Os.OgrenciID
+                WHERE     
+                    Os.OgrenciID =@KisiID
+                ORDER BY dy.EgitimYilID desc; 
+
+                DECLARE @DersSirasi smallint;
+                DECLARE @HaftaGunu smallint;
+                DECLARE @SinifDersID uniqueidentifier;
+
+                DECLARE db_cursor CURSOR FOR  
+                    SELECT DersSirasi,HaftaGunu,SinifDersID FROM ".$dbnamex."GNL_DersProgramlari
+                    WHERE SinifDersID IN 
+                        (SELECT SinifDersID FROM ".$dbnamex."GNL_SinifDersleri 
+                        WHERE SinifID = @SinifID AND DersHavuzuID IN (SELECT DersHavuzuID FROM ".$dbnamex."GNL_OgrenciDersleri WHERE OgrenciSeviyeID=@OgrenciSeviyeID))
+                        AND DonemID = @DonemID ORDER BY HaftaGunu,DersSirasi,SinifDersID
+                OPEN db_cursor   
+                FETCH NEXT FROM db_cursor INTO @DersSirasi, @HaftaGunu, @SinifDersID
+                WHILE @@FETCH_STATUS = 0   
+                BEGIN   
+                       
+                    INSERT INTO #DersProgrami (DersSirasi,HaftaGunu,SinifDersID) VALUES
+                    (@DersSirasi, @HaftaGunu, CAST(@SinifDersID AS nvarchar(40)))
+                           
+                    FETCH NEXT FROM db_cursor INTO @DersSirasi, @HaftaGunu,@SinifDersID
+                END   
+
+                CLOSE db_cursor   
+                DEALLOCATE db_cursor  
+
+                SELECT	
+                    DS.BaslangicSaati,
+                    DS.BitisSaati,
+                    dbo.GetFormattedTime(DS.BaslangicSaati, 1) + ' - ' + dbo.GetFormattedTime(DS.BitisSaati, 1) AS DersSaati,
+                    DS.DersSirasi,
+                    DP1.SinifDersID AS Gun1_SinifDersID,
+                    DP2.SinifDersID AS Gun2_SinifDersID,
+                    DP3.SinifDersID AS Gun3_SinifDersID,
+                    DP4.SinifDersID AS Gun4_SinifDersID,
+                    DP5.SinifDersID AS Gun5_SinifDersID,
+                    DP6.SinifDersID AS Gun6_SinifDersID,
+                    DP7.SinifDersID AS Gun7_SinifDersID
+                    into #xxx
+                FROM ".$dbnamex."GNL_DersSaatleri AS DS
+                INNER JOIN ".$dbnamex."GNL_DersYillari AS DY ON DY.DersYiliID = DS.DersYiliID 
+                LEFT JOIN #DersProgrami AS DP1 ON (DP1.HaftaGunu=1 AND DP1.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP2 ON (DP2.HaftaGunu=2 AND DP2.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP3 ON (DP3.HaftaGunu=3 AND DP3.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP4 ON (DP4.HaftaGunu=4 AND DP4.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP5 ON (DP5.HaftaGunu=5 AND DP5.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP6 ON (DP6.HaftaGunu=6 AND DP6.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP7 ON (DP7.HaftaGunu=7 AND DP7.DersSirasi = DS.DersSirasi)  
+
+                WHERE DY.DersYiliID = @DersYiliID AND DS.SubeGrupID = @SubeGrupID
+                ORDER BY DS.DersSirasi; 
+
+                SELECT ssdddsdsd.* , concat(kkk.Adi ,'',kkk.Soyadi) as ogretmen , '' as ogrenci  FROM ( 
+                    SELECT rrr.DersSaati , ISNULL(g1.SinifAdi,'Dersiniz Yok') as SinifAdi , 1 as dayy, rrr.Gun1_SinifDersID as SinifDersID
+                    FROM #xxx rrr
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd1 on ddd1.[SinifDersID] = rrr.Gun1_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g1 on g1.SinifID = ddd1.SinifID  
+                union 
+                    SELECT rrr.DersSaati  , ISNULL(g2.SinifAdi,'Dersiniz Yok') as SinifAdi , 2 as dayy, rrr.Gun2_SinifDersID as SinifDersID
+                    FROM #xxx rrr 	 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd2 on ddd2.[SinifDersID] = rrr.Gun2_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g2 on g2.SinifID = ddd2.SinifID  
+                union 
+                    SELECT rrr.DersSaati ,  ISNULL(g3.SinifAdi,'Dersiniz Yok')  as SinifAdi, 3 as dayy, rrr.Gun3_SinifDersID as SinifDersID
+                    FROM #xxx rrr  
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd3 on ddd3.[SinifDersID] = rrr.Gun3_SinifDersID  
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g3 on g3.SinifID = ddd3.SinifID  
+                union 
+                    SELECT rrr.DersSaati, ISNULL(g4.SinifAdi,'Dersiniz Yok') as SinifAdi , 4 as dayy, rrr.Gun4_SinifDersID  as SinifDersID
+                    FROM #xxx rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd4 on ddd4.[SinifDersID] = rrr.Gun4_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g4 on g4.SinifID = ddd4.SinifID  
+                union 
+                    SELECT rrr.DersSaati , ISNULL(g5.SinifAdi,'Dersiniz Yok')  as SinifAdi, 5 as dayy, rrr.Gun5_SinifDersID as SinifDersID
+                    FROM #xxx rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd5 on ddd5.[SinifDersID] = rrr.Gun5_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g5 on g5.SinifID = ddd5.SinifID  
+                union 
+                    SELECT rrr.DersSaati , ISNULL(g6.SinifAdi,'Dersiniz Yok')  as SinifAdi, 6 as dayy, rrr.Gun6_SinifDersID as SinifDersID
+                    FROM #xxx rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd6 on ddd6.[SinifDersID] = rrr.Gun6_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g6 on g6.SinifID = ddd6.SinifID  
+                union 
+                    SELECT rrr.DersSaati , ISNULL(g7.SinifAdi,'Dersiniz Yok') as SinifAdi  , 7 as dayy, rrr.Gun7_SinifDersID  as SinifDersID
+                    FROM #xxx rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd7 on ddd7.[SinifDersID] = rrr.Gun7_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g7 on g7.SinifID = ddd7.SinifID 
+                ) as ssdddsdsd
+                LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ssdd ON ssdd.SinifDersID =ssdddsdsd.SinifDersID  
+                LEFT JOIN ".$dbnamex."[GNL_SinifOgretmenleri] soso ON soso.SinifID =ssdd.SinifID  
+                LEFT JOIN ".$dbnamex."GNL_Kisiler kkk ON kkk.KisiID =soso.OgretmenID 
+                WHERE   dayy =   DATEPART(dw,getdate())  
+                /* and SinifAdi is not null */
+
+                IF OBJECT_ID('tempdb..#DersProgrami') IS NOT NULL DROP TABLE #DersProgrami;   
+                IF OBJECT_ID('tempdb..#xxx') IS NOT NULL DROP TABLE #xxx; 
+   
+                 "; 
+            $statement = $pdo->prepare($sql);   
+     // echo debugPDO($sql, $params);
+            $statement->execute();
+           
+            $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
+            $errorInfo = $statement->errorInfo();
+            if ($errorInfo[0] != "00000" && $errorInfo[1] != NULL && $errorInfo[2] != NULL)
+                throw new \PDOException($errorInfo[0]);
+            return array("found" => true, "errorInfo" => $errorInfo, "resultSet" => $result);
+        } catch (\PDOException $e /* Exception $e */) {    
+            return array("found" => false, "errorInfo" => $e->getMessage());
+        }
+    }
      
+    /** 
+     * @author Okan CIRAN
+     * @ dashboard   !!
+     * @version v 1.0  25.10.2017
+     * @param array | null $args
+     * @return array
+     * @throws \PDOException
+     */ 
+    public function dashboarddataOgretmen ($params = array()) {
+        try {
+            $cid = -1;
+            if ((isset($params['Cid']) && $params['Cid'] != "")) {
+                $cid = $params['Cid'];
+            } 
+            $dbnamex = 'dbo.';
+            $dbConfigValue = 'pgConnectFactory';
+            $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
+            if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }    
+            
+            $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
+           
+            $KisiID =  'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
+            if ((isset($params['KisiID']) && $params['KisiID'] != "")) {
+                $KisiID = $params['KisiID'];
+            } 
+            
+            $sql = "  
+                SET NOCOUNT ON
+
+                declare  
+                        @SinifID UNIQUEIDENTIFIER,
+                        @DonemID INT=1, 
+                        @DersYiliID uniqueidentifier ,  
+                        @OkulID uniqueidentifier ,  
+                        @KisiID uniqueidentifier ,
+                        @SubeGrupID int;
+
+                set @KisiID = '".$KisiID."'  /* '17A68CAA-1A13-460A-BEAA-FB483AC82F7B'   '3F1A5A43-0581-4793-BB6C-AC0775EA68C5'  */ 
+                set datefirst 1; 
+                IF OBJECT_ID('tempdb..#DersProgrami') IS NOT NULL DROP TABLE #DersProgrami;   
+                IF OBJECT_ID('tempdb..#xxx') IS NOT NULL DROP TABLE #xxx;  
+
+                CREATE TABLE #DersProgrami(DersSirasi smallint,
+                                            HaftaGunu smallint,
+                                            SinifDersID nvarchar(4000));  
+  
+                SELECT top 1 
+                    @DersYiliID = DY.DersYiliID ,
+                    @SubeGrupID = S.SubeGrupID ,  
+                    @SinifID = OS.SinifID   
+                 /*  OK.OkulID, 
+                    OK.KurumID,
+                    OOB.OgrenciOkulBilgiID, 
+                    dy.EgitimYilID, */  
+                FROM  ".$dbnamex."[GNL_SinifOgretmenleri] OS
+                INNER JOIN ".$dbnamex."GNL_Siniflar S ON S.SinifID = OS.SinifID
+                INNER JOIN  ".$dbnamex."GNL_DersYillari DY ON DY.DersYiliID = S.DersYiliID
+                INNER JOIN  ".$dbnamex."GNL_Okullar OK ON OK.OkulID = DY.OkulID 
+                INNER JOIN  ".$dbnamex."GNL_Kisiler K ON K.KisiID = Os.OgretmenID 
+                LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ssdd ON os.SinifID =ssdd.SinifID   
+                WHERE     
+                    os.OgretmenID =@KisiID
+                ORDER BY dy.EgitimYilID desc; 
+		
+                SELECT @DonemID =donemID FROM ( 
+                    SELECT 
+                        1 as donemID 
+                    FROM ".$dbnamex."[GNL_DersYillari]
+                    WHERE [AktifMi] =1 and 
+                        getdate() between [Donem1BaslangicTarihi] and [Donem1BitisTarihi] and 
+                       DersYiliID =@DersYiliID 
+                union 
+                    SELECT 
+                        2 as donemID 
+                    FROM ".$dbnamex."[GNL_DersYillari]
+                    WHERE [AktifMi] =1 and 
+                        getdate() between [Donem2BaslangicTarihi] and [Donem2BitisTarihi] and 
+                        DersYiliID =@DersYiliID 
+                   ) as sdsasd; 
+
+                DECLARE @DersSirasi smallint;
+                DECLARE @HaftaGunu smallint;
+                DECLARE @SinifDersID uniqueidentifier;
+
+                DECLARE db_cursor CURSOR FOR  
+                SELECT DersSirasi,HaftaGunu,SinifDersID FROM ".$dbnamex."GNL_DersProgramlari
+                                WHERE SinifDersID IN (SELECT SinifDersID FROM ".$dbnamex."GNL_SinifDersleri WHERE SinifID = @SinifID)
+                                AND DonemID = @DonemID ORDER BY HaftaGunu,DersSirasi,SinifDersID
+                OPEN db_cursor   
+                FETCH NEXT FROM db_cursor INTO @DersSirasi, @HaftaGunu, @SinifDersID
+                WHILE @@FETCH_STATUS = 0   
+                BEGIN   
+                       
+                    INSERT INTO #DersProgrami (DersSirasi,HaftaGunu,SinifDersID) VALUES
+                    (@DersSirasi, @HaftaGunu, CAST(@SinifDersID AS nvarchar(40)))
+                        
+                    FETCH NEXT FROM db_cursor INTO @DersSirasi, @HaftaGunu,@SinifDersID
+                END   
+
+                CLOSE db_cursor   
+                DEALLOCATE db_cursor  
+
+                SELECT 
+                    DS.BaslangicSaati,
+                    DS.BitisSaati,
+                    dbo.GetFormattedTime(DS.BaslangicSaati, 1) + ' - ' + dbo.GetFormattedTime(DS.BitisSaati, 1) AS DersSaati,
+                    DS.DersSirasi,
+                    DP1.SinifDersID AS Gun1_SinifDersID,
+                    DP2.SinifDersID AS Gun2_SinifDersID,
+                    DP3.SinifDersID AS Gun3_SinifDersID,
+                    DP4.SinifDersID AS Gun4_SinifDersID,
+                    DP5.SinifDersID AS Gun5_SinifDersID,
+                    DP6.SinifDersID AS Gun6_SinifDersID,
+                    DP7.SinifDersID AS Gun7_SinifDersID
+                     into #xxx
+                FROM ".$dbnamex."GNL_DersSaatleri AS DS
+                INNER JOIN ".$dbnamex."GNL_DersYillari AS DY ON DY.DersYiliID = DS.DersYiliID 
+                LEFT JOIN #DersProgrami AS DP1 ON (DP1.HaftaGunu=1 AND DP1.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP2 ON (DP2.HaftaGunu=2 AND DP2.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP3 ON (DP3.HaftaGunu=3 AND DP3.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP4 ON (DP4.HaftaGunu=4 AND DP4.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP5 ON (DP5.HaftaGunu=5 AND DP5.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP6 ON (DP6.HaftaGunu=6 AND DP6.DersSirasi = DS.DersSirasi)  
+                LEFT JOIN #DersProgrami AS DP7 ON (DP7.HaftaGunu=7 AND DP7.DersSirasi = DS.DersSirasi)  
+                WHERE DY.DersYiliID = @DersYiliID AND DS.SubeGrupID = @SubeGrupID
+                ORDER BY DS.DersSirasi
+
+                SELECT ssdddsdsd.* , concat(kkk.Adi ,'',kkk.Soyadi) as ogretmen , '' as ogrenci   FROM ( 
+                    SELECT rrr.DersSaati , ISNULL(g1.SinifAdi,'Dersiniz Yok') as SinifAdi , 1 as dayy, rrr.Gun1_SinifDersID as SinifDersID
+                    FROM #xxx rrr
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd1 on ddd1.[SinifDersID] = rrr.Gun1_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g1 on g1.SinifID = ddd1.SinifID  
+                union 
+                    SELECT rrr.DersSaati  , ISNULL(g2.SinifAdi,'Dersiniz Yok') as SinifAdi , 2 as dayy, rrr.Gun2_SinifDersID as SinifDersID
+                    FROM #xxx rrr 	 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd2 on ddd2.[SinifDersID] = rrr.Gun2_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g2 on g2.SinifID = ddd2.SinifID  
+                union 
+                    SELECT rrr.DersSaati ,  ISNULL(g3.SinifAdi,'Dersiniz Yok')  as SinifAdi, 3 as dayy, rrr.Gun3_SinifDersID as SinifDersID
+                    FROM #xxx rrr  
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd3 on ddd3.[SinifDersID] = rrr.Gun3_SinifDersID  
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g3 on g3.SinifID = ddd3.SinifID  
+                union 
+                    SELECT rrr.DersSaati, ISNULL(g4.SinifAdi,'Dersiniz Yok') as SinifAdi , 4 as dayy, rrr.Gun4_SinifDersID  as SinifDersID
+                    FROM #xxx rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd4 on ddd4.[SinifDersID] = rrr.Gun4_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g4 on g4.SinifID = ddd4.SinifID  
+                union 
+                    SELECT rrr.DersSaati ,   ISNULL(g5.SinifAdi,'Dersiniz Yok')  as SinifAdi, 5 as dayy, rrr.Gun5_SinifDersID as SinifDersID
+                    FROM #xxx rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd5 on ddd5.[SinifDersID] = rrr.Gun5_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g5 on g5.SinifID = ddd5.SinifID  
+                union 
+                    SELECT rrr.DersSaati , ISNULL(g6.SinifAdi,'Dersiniz Yok')  as SinifAdi, 6 as dayy, rrr.Gun6_SinifDersID as SinifDersID
+                    FROM #xxx rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd6 on ddd6.[SinifDersID] = rrr.Gun6_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g6 on g6.SinifID = ddd6.SinifID  
+                union 
+                    SELECT rrr.DersSaati , ISNULL(g7.SinifAdi,'Dersiniz Yok') as SinifAdi  , 7 as dayy, rrr.Gun7_SinifDersID  as SinifDersID
+                    FROM #xxx rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd7 on ddd7.[SinifDersID] = rrr.Gun7_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g7 on g7.SinifID = ddd7.SinifID 
+                ) as ssdddsdsd
+                LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ssdd ON ssdd.SinifDersID =ssdddsdsd.SinifDersID  
+                LEFT JOIN ".$dbnamex."[GNL_SinifOgretmenleri] soso ON soso.SinifID =ssdd.SinifID  
+                LEFT JOIN ".$dbnamex."GNL_Kisiler kkk ON kkk.KisiID =soso.OgretmenID 
+                 WHERE   dayy =  DATEPART(dw,getdate())  
+                /* and SinifAdi is not null */
+
+                IF OBJECT_ID('tempdb..#DersProgrami') IS NOT NULL DROP TABLE #DersProgrami;   
+                IF OBJECT_ID('tempdb..#xxx') IS NOT NULL DROP TABLE #xxx; 
+ 
+                SET NOCOUNT OFF 
+   
+                 "; 
+            $statement = $pdo->prepare($sql);   
+     // echo debugPDO($sql, $params);
+            $statement->execute();
+           
+            $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
+            $errorInfo = $statement->errorInfo();
+            if ($errorInfo[0] != "00000" && $errorInfo[1] != NULL && $errorInfo[2] != NULL)
+                throw new \PDOException($errorInfo[0]);
+            return array("found" => true, "errorInfo" => $errorInfo, "resultSet" => $result);
+        } catch (\PDOException $e /* Exception $e */) {    
+            return array("found" => false, "errorInfo" => $e->getMessage());
+        }
+    }
+     
+     
+    /** 
+     * @author Okan CIRAN
+     * @ dashboard   !!
+     * @version v 1.0  25.10.2017
+     * @param array | null $args
+     * @return array
+     * @throws \PDOException
+     */ 
+    public function dashboarddataYakini ($params = array()) {
+        try {
+            $cid = -1;
+            if ((isset($params['Cid']) && $params['Cid'] != "")) {
+                $cid = $params['Cid'];
+            } 
+            $dbnamex = 'dbo.';
+            $dbConfigValue = 'pgConnectFactory';
+            $dbConfig =  MobilSetDbConfigx::mobilDBConfig( array( 'Cid' =>$cid,));
+            if (\Utill\Dal\Helper::haveRecord($dbConfig)) {
+                $dbConfigValue =$dbConfigValue.$dbConfig['resultSet'][0]['configclass']; 
+                if ((isset($dbConfig['resultSet'][0]['configclass']) && $dbConfig['resultSet'][0]['configclass'] != "")) {
+                   $dbnamex =$dbConfig['resultSet'][0]['dbname'].'.'.$dbnamex;
+                    }   
+            }      
+            
+            $pdo = $this->slimApp->getServiceManager()->get($dbConfigValue);
+           
+            $KisiID =  'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC';
+            if ((isset($params['KisiID']) && $params['KisiID'] != "")) {
+                $KisiID = $params['KisiID'];
+            } 
+             
+            $sql = "   
+            SET NOCOUNT ON
+
+            set datefirst 5; 
+            declare  
+                @SinifID UNIQUEIDENTIFIER,
+                @DonemID INT=1,
+                @OgrenciSeviyeID uniqueidentifier ,
+                @DersYiliID uniqueidentifier ,  
+                @OkulID uniqueidentifier ,  
+                @KisiID uniqueidentifier ,
+                @SubeGrupID int; 
+
+                /*
+                set @SinifID = 'F4201B97-B073-4DD7-8891-8091C3DC82CF'; 
+                set @OgrenciSeviyeID ='C8611CCD-E3B1-42DB-B83E-013E419BB4B7';
+                */ 
+                set @KisiID = '".$KisiID."';  /* 'A552D233-1842-4DA1-8B3B-33FE3358E3F3' ;  */  
+                IF OBJECT_ID('tempdb..#DersProgrami') IS NOT NULL DROP TABLE #DersProgrami;   
+                IF OBJECT_ID('tempdb..#DersProgramiSonuc') IS NOT NULL DROP TABLE #DersProgramiSonuc;  
+                IF OBJECT_ID('tempdb..#DersProgramiSonuc') IS NOT NULL DROP TABLE #DersProgramiSonuc;  
+
+                CREATE TABLE #DersProgrami(DersSirasi smallint,
+                                            HaftaGunu smallint,
+                                            SinifDersID nvarchar(4000),
+                                            OgrenciseviyeID nvarchar(4000));
+		
+		CREATE TABLE #DersProgramiSonuc(  BaslangicSaati varchar(20),
+                    BitisSaati varchar(20),
+                    DersSaati varchar(20),
+                    DersSirasi int,
+                    Gun1_SinifDersID uniqueidentifier,
+                    Gun2_SinifDersID uniqueidentifier,
+                    Gun3_SinifDersID uniqueidentifier,
+                    Gun4_SinifDersID uniqueidentifier,
+                    Gun5_SinifDersID uniqueidentifier,
+                    Gun6_SinifDersID uniqueidentifier,
+                    Gun7_SinifDersID uniqueidentifier,
+                    OgrenciseviyeID uniqueidentifier);  
+
+			   
+                DECLARE @DersSirasi smallint;
+                DECLARE @HaftaGunu smallint;
+                DECLARE @SinifDersID uniqueidentifier;
+   
+                DECLARE db_cursor CURSOR FOR  
+                        SELECT  
+                            DY.DersYiliID ,
+                            S.SubeGrupID , 
+                            OS.OgrenciseviyeID, 
+                            OS.SinifID   
+                        FROM ".$dbnamex."[GNL_OgrenciYakinlari] oy
+                        INNER JOIN  ".$dbnamex."GNL_OgrenciSeviyeleri OS on  oy.OgrenciID =  Os.OgrenciID
+                        INNER JOIN  ".$dbnamex."GNL_Kisiler K ON K.KisiID = Os.OgrenciID 
+                        INNER JOIN  ".$dbnamex."GNL_Siniflar S ON S.SinifID = OS.SinifID
+                        INNER JOIN  ".$dbnamex."GNL_DersYillari DY ON DY.DersYiliID = S.DersYiliID
+                        INNER JOIN  ".$dbnamex."GNL_Okullar OK ON OK.OkulID = DY.OkulID
+                        INNER JOIN  ".$dbnamex."GNL_OgrenciOkulBilgileri OOB ON OOB.OkulID = OK.OkulID AND OOB.OgrenciID = OS.OgrenciID 
+                        WHERE     
+                           oy.YakinID =@KisiID
+                        ORDER BY dy.EgitimYilID desc;  
+			
+		OPEN db_cursor   
+                FETCH NEXT FROM db_cursor INTO @DersYiliID, @SubeGrupID , @OgrenciseviyeID, @SinifID
+                WHILE @@FETCH_STATUS = 0   
+                BEGIN   
+
+                    DECLARE db_cursor1 CURSOR FOR  
+                        SELECT DersSirasi,HaftaGunu,SinifDersID FROM GNL_DersProgramlari
+                        WHERE SinifDersID IN 
+                            (SELECT SinifDersID FROM ".$dbnamex."GNL_SinifDersleri 
+                            WHERE SinifID = @SinifID AND DersHavuzuID IN (SELECT DersHavuzuID FROM ".$dbnamex."GNL_OgrenciDersleri WHERE OgrenciSeviyeID=@OgrenciSeviyeID))
+                            AND DonemID = @DonemID ORDER BY HaftaGunu,DersSirasi,SinifDersID
+                        OPEN db_cursor1   
+                        FETCH NEXT FROM db_cursor1 INTO @DersSirasi, @HaftaGunu, @SinifDersID
+                        WHILE @@FETCH_STATUS = 0   
+                        BEGIN   
+
+                            INSERT INTO #DersProgrami (DersSirasi,HaftaGunu,SinifDersID,OgrenciseviyeID) VALUES
+                            (@DersSirasi, @HaftaGunu, CAST(@SinifDersID AS nvarchar(40)),@OgrenciseviyeID)
+
+                            FETCH NEXT FROM db_cursor1 INTO @DersSirasi, @HaftaGunu,@SinifDersID
+                        END   
+
+                    CLOSE db_cursor1   
+                    DEALLOCATE db_cursor1  
+		 
+                    insert into #DersProgramiSonuc (BaslangicSaati,BitisSaati,DersSaati,
+                    DersSirasi,Gun1_SinifDersID,Gun2_SinifDersID,Gun3_SinifDersID,
+                    Gun4_SinifDersID,Gun5_SinifDersID,Gun6_SinifDersID,Gun7_SinifDersID,OgrenciseviyeID)
+                    SELECT 
+                        DS.BaslangicSaati,
+                        DS.BitisSaati,
+                        dbo.GetFormattedTime(DS.BaslangicSaati, 1) + ' - ' + dbo.GetFormattedTime(DS.BitisSaati, 1) AS DersSaati,
+                        DS.DersSirasi,
+                        DP1.SinifDersID AS Gun1_SinifDersID,
+                        DP2.SinifDersID AS Gun2_SinifDersID,
+                        DP3.SinifDersID AS Gun3_SinifDersID,
+                        DP4.SinifDersID AS Gun4_SinifDersID,
+                        DP5.SinifDersID AS Gun5_SinifDersID,
+                        DP6.SinifDersID AS Gun6_SinifDersID,
+                        DP7.SinifDersID AS Gun7_SinifDersID,
+                        @OgrenciseviyeID
+                    FROM ".$dbnamex."GNL_DersSaatleri AS DS
+                    INNER JOIN ".$dbnamex."GNL_DersYillari AS DY ON DY.DersYiliID = DS.DersYiliID 
+                    LEFT JOIN #DersProgrami AS DP1 ON (DP1.HaftaGunu=1 AND DP1.DersSirasi = DS.DersSirasi)  
+                    LEFT JOIN #DersProgrami AS DP2 ON (DP2.HaftaGunu=2 AND DP2.DersSirasi = DS.DersSirasi)  
+                    LEFT JOIN #DersProgrami AS DP3 ON (DP3.HaftaGunu=3 AND DP3.DersSirasi = DS.DersSirasi)  
+                    LEFT JOIN #DersProgrami AS DP4 ON (DP4.HaftaGunu=4 AND DP4.DersSirasi = DS.DersSirasi)  
+                    LEFT JOIN #DersProgrami AS DP5 ON (DP5.HaftaGunu=5 AND DP5.DersSirasi = DS.DersSirasi)  
+                    LEFT JOIN #DersProgrami AS DP6 ON (DP6.HaftaGunu=6 AND DP6.DersSirasi = DS.DersSirasi)  
+                    LEFT JOIN #DersProgrami AS DP7 ON (DP7.HaftaGunu=7 AND DP7.DersSirasi = DS.DersSirasi)  
+
+                    WHERE DY.DersYiliID = @DersYiliID AND DS.SubeGrupID = @SubeGrupID
+                    ORDER BY DS.DersSirasi;  
+ 
+                    FETCH NEXT FROM db_cursor INTO @DersYiliID, @SubeGrupID , @OgrenciseviyeID, @SinifID
+                END   
+
+                CLOSE db_cursor   
+                DEALLOCATE db_cursor  
+
+	  
+                SELECT ssdddsdsd.* , concat(kkk.Adi ,'',kkk.Soyadi) as ogretmen , concat(k.Adi ,' ',k.Soyadi) as ogrenci  FROM ( 
+                    SELECT rrr.DersSaati , ISNULL(g1.SinifAdi,'Dersiniz Yok') as SinifAdi , 1 as dayy, rrr.Gun1_SinifDersID as SinifDersID, OgrenciseviyeID, DersSirasi
+                    FROM #DersProgramiSonuc rrr
+                        LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd1 on ddd1.[SinifDersID] = rrr.Gun1_SinifDersID
+                        LEFT JOIN ".$dbnamex."[GNL_Siniflar] g1 on g1.SinifID = ddd1.SinifID  
+                union 
+                    SELECT rrr.DersSaati  , ISNULL(g2.SinifAdi,'Dersiniz Yok') as SinifAdi , 2 as dayy, rrr.Gun2_SinifDersID as SinifDersID, OgrenciseviyeID, DersSirasi
+                    FROM #DersProgramiSonuc rrr 	 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd2 on ddd2.[SinifDersID] = rrr.Gun2_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g2 on g2.SinifID = ddd2.SinifID  
+                union 
+                    SELECT rrr.DersSaati ,  ISNULL(g3.SinifAdi,'Dersiniz Yok')  as SinifAdi, 3 as dayy, rrr.Gun3_SinifDersID as SinifDersID, OgrenciseviyeID, DersSirasi
+                    FROM #DersProgramiSonuc rrr  
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd3 on ddd3.[SinifDersID] = rrr.Gun3_SinifDersID  
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g3 on g3.SinifID = ddd3.SinifID  
+                union 
+                    SELECT rrr.DersSaati, ISNULL(g4.SinifAdi,'Dersiniz Yok') as SinifAdi , 4 as dayy, rrr.Gun4_SinifDersID  as SinifDersID, OgrenciseviyeID, DersSirasi
+                    FROM #DersProgramiSonuc rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd4 on ddd4.[SinifDersID] = rrr.Gun4_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g4 on g4.SinifID = ddd4.SinifID  
+                union 
+                    SELECT rrr.DersSaati ,   ISNULL(g5.SinifAdi,'Dersiniz Yok')  as SinifAdi, 5 as dayy, rrr.Gun5_SinifDersID as SinifDersID, OgrenciseviyeID, DersSirasi
+                    FROM #DersProgramiSonuc rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd5 on ddd5.[SinifDersID] = rrr.Gun5_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g5 on g5.SinifID = ddd5.SinifID  
+                union 
+                    SELECT rrr.DersSaati , ISNULL(g6.SinifAdi,'Dersiniz Yok')  as SinifAdi, 6 as dayy, rrr.Gun6_SinifDersID as SinifDersID, OgrenciseviyeID, DersSirasi
+                    FROM #DersProgramiSonuc rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd6 on ddd6.[SinifDersID] = rrr.Gun6_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g6 on g6.SinifID = ddd6.SinifID  
+                union 
+                    SELECT rrr.DersSaati , ISNULL(g7.SinifAdi,'Dersiniz Yok') as SinifAdi  , 7 as dayy, rrr.Gun7_SinifDersID  as SinifDersID, OgrenciseviyeID, DersSirasi
+                    FROM #DersProgramiSonuc rrr 
+                    LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ddd7 on ddd7.[SinifDersID] = rrr.Gun7_SinifDersID
+                    LEFT JOIN ".$dbnamex."[GNL_Siniflar] g7 on g7.SinifID = ddd7.SinifID 
+                ) as ssdddsdsd
+                INNER JOIN ".$dbnamex."GNL_OgrenciSeviyeleri OS on ssdddsdsd.OgrenciseviyeID =  Os.OgrenciseviyeID
+                INNER JOIN ".$dbnamex."GNL_Kisiler K ON K.KisiID = Os.OgrenciID 
+                LEFT JOIN ".$dbnamex."[GNL_SinifDersleri] ssdd ON ssdd.SinifDersID =ssdddsdsd.SinifDersID  
+                LEFT JOIN ".$dbnamex."[GNL_SinifOgretmenleri] soso ON soso.SinifID =ssdd.SinifID  
+                LEFT JOIN ".$dbnamex."GNL_Kisiler kkk ON kkk.KisiID =soso.OgretmenID 
+                WHERE dayy = DATEPART(dw,getdate())  
+                /* and SinifAdi is not null */
+                ORDER BY OgrenciseviyeID , DersSirasi
+
+            IF OBJECT_ID('tempdb..#DersProgrami') IS NOT NULL DROP TABLE #DersProgrami;   
+            IF OBJECT_ID('tempdb..#DersProgramiSonuc') IS NOT NULL DROP TABLE #DersProgramiSonuc;  
+            IF OBJECT_ID('tempdb..#DersProgramiSonuc') IS NOT NULL DROP TABLE #DersProgramiSonuc;   
+            SET NOCOUNT OFF;
+                 "; 
+            $statement = $pdo->prepare($sql);   
+    //echo debugPDO($sql, $params);
+            $statement->execute();
+           
+            $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
+            $errorInfo = $statement->errorInfo();
+            if ($errorInfo[0] != "00000" && $errorInfo[1] != NULL && $errorInfo[2] != NULL)
+                throw new \PDOException($errorInfo[0]);
+            return array("found" => true, "errorInfo" => $errorInfo, "resultSet" => $result);
+        } catch (\PDOException $e /* Exception $e */) {    
+            return array("found" => false, "errorInfo" => $e->getMessage());
+        }
+    }
+     
+    
+ 
+ 
+   
+
     
    
 }

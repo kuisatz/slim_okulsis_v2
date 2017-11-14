@@ -154,7 +154,7 @@ class MobilSetDbConfigx extends \DAL\DalSlim {
              }
     }
                             
-      /** 
+    /** 
      * @author Okan CIRAN
      * @ login olan userin okul bilgileri ve okul id leri   !!
      * @version v 1.0  30.10.2017
@@ -164,7 +164,7 @@ class MobilSetDbConfigx extends \DAL\DalSlim {
      */
     public function mobilDBConfig($params = array()) {
         try {
-            $pdo = $this->slimApp->getServiceManager()->get('pgConnectFactory'); 
+            $pdo = $this->slimApp->getServiceManager()->get('pgConnectFactoryMobil'); 
             $cid = -1;
             if ((isset($params['Cid']) && $params['Cid'] != "")) {
                 $cid = $params['Cid'];
@@ -175,9 +175,9 @@ class MobilSetDbConfigx extends \DAL\DalSlim {
                 SELECT   
                     id,
                     configclass , 
-                    [dbname]
-                    (CASE WHEN (1 = 1) THEN 1 ELSE 0 END)  as control                    
-                FROM  [dbo].[GNL_Mobil_Settings]
+                    [dbname],
+                    (CASE WHEN (1 = 1) THEN 1 ELSE 0 END) AS control                    
+                FROM BILSANET_MOBILE.[dbo].[Mobil_Settings] 
                 WHERE id= ".$cid." ; 
             SET NOCOUNT OFF; 
                  "; 

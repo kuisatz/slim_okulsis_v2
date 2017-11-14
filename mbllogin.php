@@ -2557,7 +2557,74 @@ $app->get("/MuhBorcluOdemePlani_mbllogin/", function () use ($app ) {
   
 });
 
+/**
+ * Okan CIRAN
+ * @since 25-10-2017 
+ */
+$app->get("/DashboarddataDersProgrami_mbllogin/", function () use ($app ) {
+    $stripper = $app->getServiceManager()->get('filterChainerCustom');
+    $stripChainerFactory = new \Services\Filter\Helper\FilterChainerFactory();        
+    $BLL = $app->getBLLManager()->get('mblLoginBLL'); 
+    $headerParams = $app->request()->headers(); 
+     
+    $vkisiId = NULL;     
+    if (isset($_GET['kisiId'])) {
+        $stripper->offsetSet('kisiId', $stripChainerFactory->get(stripChainers::FILTER_PARANOID_LEVEL2, 
+                $app, $_GET['kisiId']));
+    }
+    $vRolId = NULL;     
+    if (isset($_GET['rolId'])) {
+        $stripper->offsetSet('rolId', $stripChainerFactory->get(stripChainers::FILTER_PARANOID_LEVEL2, 
+                $app, $_GET['rolId']));
+    }
+    $vdbnamex = NULL;
+    if (isset($_GET['dbn'])) {
+        $stripper->offsetSet('dbn', $stripChainerFactory->get(stripChainers::FILTER_PARANOID_LEVEL2, 
+                                                                $app, 
+                                                                $_GET['dbn']));
+    }  
+    $vCid = NULL;   
+    if (isset($_GET['cid'])) {
+        $stripper->offsetSet('cid', $stripChainerFactory->get(stripChainers::FILTER_ONLY_NUMBER_ALLOWED, 
+                $app, $_GET['cid']));
+    }
+    $stripper->strip();
+    if ($stripper->offsetExists('cid')) {
+        $vCid = $stripper->offsetGet('cid')->getFilterValue();
+    }
+    if ($stripper->offsetExists('dbn')) 
+        {$vdbnamex = $stripper->offsetGet('dbn')->getFilterValue(); }  
+   
+    if ($stripper->offsetExists('kisiId')) {
+        $vkisiId = $stripper->offsetGet('kisiId')->getFilterValue();
+    } 
+    if ($stripper->offsetExists('rolId')) {
+        $vRolId = $stripper->offsetGet('rolId')->getFilterValue();
+    } 
+   
+    $resDataMenu = $BLL->dashboarddataDersProgrami(array(      
+                                            'KisiID' => $vkisiId,   
+                                            'RolID' => $vRolId,   
+                                            'dbnamex' => $vdbnamex, 
+                                            'Cid' => $vCid, 
+                                           ) ); 
+    $menus = array();
+    foreach ($resDataMenu as $menu){
+        $menus[]  = array(
+             "DersSaati" => $menu["DersSaati"],   
+             "SinifAdi" => html_entity_decode($menu["SinifAdi"]),  
+             "ogretmen" => html_entity_decode($menu["ogretmen"]),   
+             "ogrenci" => html_entity_decode($menu["ogrenci"]),   
+            
+        );
+    }
+    
+    $app->response()->header("Content-Type", "application/json"); 
+    $app->response()->body(json_encode($menus));
+  
+});
 
+ 
 
  
 $app->run();

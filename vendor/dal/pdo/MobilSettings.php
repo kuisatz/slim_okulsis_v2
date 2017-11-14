@@ -9,7 +9,7 @@
  */
 
 namespace DAL\PDO;
-
+require_once('SOAP/Client.php');
 /**
  * Class using Zend\ServiceManager\FactoryInterface
  * created to be used by DAL MAnager
@@ -118,7 +118,7 @@ class MobilSettings extends \DAL\DalSlim {
      */
     public function mobilUrlData($params = array()) {
         try {
-            $pdo = $this->slimApp->getServiceManager()->get('pgConnectFactory'); 
+            $pdo = $this->slimApp->getServiceManager()->get('pgConnectFactoryMobil'); 
             $sql = "  
             SET NOCOUNT ON; 
             SELECT * FROM (       
@@ -139,7 +139,7 @@ class MobilSettings extends \DAL\DalSlim {
                     [abbrevation],
                     [schoolName],
                     combologo
-                FROM  [dbo].[GNL_Mobil_Settings]
+                FROM  BILSANET_MOBILE.[dbo].[Mobil_Settings]
                 WHERE active =0 AND deleted =0 
                 ) as ssss 
             ORDER BY id 

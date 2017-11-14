@@ -14,7 +14,7 @@ namespace Services\Database\Postgresql;
  * service manager layer for database connection
  * @author Okan CIRAN
  */
-class PostgreSQLConnectPDOBilsanet implements \Zend\ServiceManager\FactoryInterface {
+class PostgreSQLConnectPDOMobil implements \Zend\ServiceManager\FactoryInterface {
     
     /**
      * service ceration via factory on zend service manager
@@ -23,17 +23,28 @@ class PostgreSQLConnectPDOBilsanet implements \Zend\ServiceManager\FactoryInterf
      */
     public function createService(\Zend\ServiceManager\ServiceLocatorInterface $serviceLocator) {
         try {
-          /*  $pdo = new \PDO('pgsql:dbname=development;host=localhost;',
+           /* $pdo = new \PDO('pgsql:dbname=development;host=localhost;',
                             'postgres',
                             '1Qaaal123',
                             PostgreSQLConnectPDOConfig::getConfig());
-           * 
-           */
-              $pdo = new \PDO("sqlsrv:Server=ZZX;Database=Bilsanet1", 
+            * 
+            */ 
+            $pdo = new \PDO("sqlsrv:Server=ZZX;Database=BILSANET_MOBILE", 
                             "sa", 
                             "12345678oki"
                             );
      
+ /*       $serverName = "tcp:ZZX,1433";  
+            $connectionOptions = array("Database"=>"BILSANET",  
+                "Uid"=>"sa", "PWD"=>"12345678oki");  
+            $pdo = sqlsrv_connect($serverName, $connectionOptions);  
+            if($pdo == false)  
+                die(FormatErrors(sqlsrv_errors()));  
+      * 
+      */
+            
+   //    $pdo = new \PDO("sqlsrv:Server=ZZX;Database=BILSANET", "sa", "12345678oki");     
+         
             return $pdo;
         } catch (PDOException $e) {
             return false;
